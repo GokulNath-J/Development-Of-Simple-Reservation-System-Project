@@ -1,6 +1,7 @@
 package com.example.Train_Service.Controller;
 
 
+import com.example.Train_Service.DTO.TrainCoachNumberDTO;
 import com.example.Train_Service.DTO.TrainDTOWrapper;
 import com.example.Train_Service.Entity.TrainDetails;
 import com.example.Train_Service.Service.ServiceClass;
@@ -114,14 +115,32 @@ public class RailwayController {
         serviceClass.verifyTrain();
     }
 
-    @GetMapping("/sendTrainDTOToBookingServiceManually")
+    @GetMapping("/sendTatkalAndPremiumTataklTicketsToBookingServiceManually")
     public TrainDTOWrapper sendTrainDTOToBookingServiceManually() {
-        TrainDTOWrapper trainDTOWrapper = new TrainDTOWrapper(serviceClass.sendTrainDTO1());
+        TrainDTOWrapper trainDTOWrapper = new TrainDTOWrapper(serviceClass.sendTatkalAndPremiumTataklTickets());
+
         return trainDTOWrapper;
     }
 
+    @GetMapping("/sendNormalTicketsToBookingServiceManually")
+    public TrainDTOWrapper sendNormalTicketsToBookingServiceManually() {
+        TrainDTOWrapper trainDTOWrapper = new TrainDTOWrapper(serviceClass.sendNormalTickts());
+        return trainDTOWrapper;
+    }
+
+
     @DeleteMapping("/deleteTrainByTrainNumber")
-    public ResponseEntity<String> deleteTrainByTrainNumber(@RequestParam Integer trainNumber){
+    public ResponseEntity<String> deleteTrainByTrainNumber(@RequestParam Integer trainNumber) {
         return serviceClass.deleteTrainByTrainNumber(trainNumber);
+    }
+
+    @GetMapping("/sendTrainCoachNumberDTO")
+    public List<TrainCoachNumberDTO> sendTrainCoachNumberDTO(@RequestParam Integer trainNumber) {
+        return serviceClass.sendTrainCoachNumberDTO(trainNumber);
+    }
+
+    @GetMapping("/getTrainByTrainNumber")
+    public TrainDetails getTrainByTrainNumber(@RequestParam Integer trainNumber){
+        return serviceClass.getTrainByTrainNumber(trainNumber);
     }
 }

@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.Cascade;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,10 +24,10 @@ public class BookedTicketsAndStatus {
     @SequenceGenerator(name = "bookedtickets", sequenceName = "seqbookedtickets", allocationSize = 1)
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "bookedtickets")
     private Integer id;
+    private String pnr;
     private String userName;
     private Integer trainNumber;
     private LocalDate travelDate;
-    private String coachName;
     private String fromStationName;
     private String toStationName;
     private Integer numberOfTickets;
@@ -44,7 +45,6 @@ public class BookedTicketsAndStatus {
         this.userName = bookingRequest.getUserName();
         this.trainNumber = bookingRequest.getTrainNumber();
         this.travelDate = bookingRequest.getTravelDate();
-        this.coachName = bookingRequest.getCoachName();
         this.fromStationName = bookingRequest.getFromStationName();
         this.toStationName = bookingRequest.getToStationName();
         this.numberOfTickets = bookingRequest.getNumberOfTickets();

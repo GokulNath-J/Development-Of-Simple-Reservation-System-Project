@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PassengerDetailsDTO {
-
     private String passengerName;
+    private String gender;
+    private int age;
 }

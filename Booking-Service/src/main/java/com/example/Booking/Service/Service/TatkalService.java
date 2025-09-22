@@ -4,16 +4,14 @@ import com.example.Booking.Service.DTO.BookingRequest;
 import com.example.Booking.Service.DTO.BookingStatus;
 import com.example.Booking.Service.DTO.TicketPrice;
 import com.example.Booking.Service.Entity.TatkalTickets;
-import com.example.InsufficientBalanceException;
-import com.example.PaymentFailedException;
 import com.example.Booking.Service.Repository.TatkalRepo;
 import com.example.Booking.Service.Repository.TicketPriceRepo;
+import com.example.PaymentFailedException;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -60,8 +58,10 @@ public class TatkalService {
             log.info("TatkalTickets in TatkalService:{}", tatkalTickets);
             TatkalTickets tickets = new TatkalTickets();
             for (TatkalTickets tatkalTicket : tatkalTickets) {
+                log.info("Inside For-each Loop");
                 if (tatkalTicket.getStationName().equalsIgnoreCase(request.getFromStationName())
                         && tatkalTicket.getCoachName().equalsIgnoreCase(request.getCoachName())) {
+                    log.info("Tatkel Ticket Found {}", true);
                     tickets = tatkalTicket;
                 }
             }
@@ -73,7 +73,7 @@ public class TatkalService {
                 totalTicketAmount = calculateTotalAmount(request.getBookingMethod(), tickets.getEachSeatPrice(),
                         request.getNumberOfTickets(), request.getCoachName());
                 if (totalTicketAmount > 0.0) {
-                    String result = bookingServiceToPaymentService.bookTicket(tickets, request, totalTicketAmount).getBody();
+                    String result = bookingServiceToPaymentService.bookTatkalTicket(tickets, request, totalTicketAmount).getBody();
                     log.info("Payment Result in TatkalService:{}", result);
                     if (result.equalsIgnoreCase("Payment Success")) {
                         addTicketsToAnotherStations(tatkalTickets, request.getToStationName(), request.getCoachName(), request.getNumberOfTickets());
@@ -92,7 +92,7 @@ public class TatkalService {
                 Scanner scanner = new Scanner(System.in);
                 String yesOrno = scanner.nextLine();
                 if (yesOrno.equalsIgnoreCase("y")) {
-                    String result = bookingServiceToPaymentService.bookTicket(tickets, request, totalTicketAmount).getBody();
+                    String result = bookingServiceToPaymentService.bookTatkalTicket(tickets, request, totalTicketAmount).getBody();
                     log.info("Payment Result in TatkalService:{}", result);
                     if (result.equalsIgnoreCase("Payment Success")) {
                         bookedTicketsService.addTickets(request, BookingStatus.WAITING, totalTicketAmount);
@@ -107,7 +107,6 @@ public class TatkalService {
         }
         return ResponseEntity.ok("There is Not Train on this Date");
     }
-
 
     private double calculateTotalAmount(String bookingMethod, Double eachSeatPrice, int numberOfTickets, String coachName) {
         log.info("Request in calculateTotalAmount Method in TatkalService");
@@ -137,5 +136,4 @@ public class TatkalService {
         tickets.setNoOfSeatsAvailable(tickets.getNoOfSeatsAvailable() + numberOfTickets);
         log.info("Tickets Successfully Added to Station:{}", toStationName);
     }
-
 }

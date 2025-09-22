@@ -4,7 +4,10 @@ package com.example.Payment_Service.ServicePackage;
 import com.example.InsufficientBalanceException;
 import com.example.PasswordIncorrectException;
 import com.example.PaymentFailedException;
+import com.example.Payment_Service.Entity.BookingTransaction;
 import com.example.Payment_Service.Entity.EWalletDetails;
+import com.example.Payment_Service.Entity.TransactionStatus;
+import com.example.Payment_Service.Repository.BookingTransactionRepo;
 import com.example.Payment_Service.Repository.EWalletDetailsRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Scanner;
+import java.util.UUID;
 
 @Service
 public class PaymentServiceClass {
@@ -23,6 +27,9 @@ public class PaymentServiceClass {
 
     @Autowired
     private EWalletDetailsRepo eWalletDetailsRepo;
+
+    @Autowired
+    private BookingTransactionRepo bookingTransactionRepo;
 
 //    private EWalletDetailsRepo eWalletDetailsRepo;
 //
@@ -65,10 +72,22 @@ public class PaymentServiceClass {
             if (totalTicketAmount <= eWalletAmount){
                 eWalletDetails.setAmount(eWalletAmount-totalTicketAmount);
                 eWalletDetailsRepo.save(eWalletDetails);
+                BookingTransaction bookingTransaction = new BookingTransaction();
+                bookingTransaction.setTransactionID(UUID.randomUUID().toString().substring(0,14).replace("-",""));
+                bookingTransaction.setUserName(userName);
+                bookingTransaction.setAmount(totalTicketAmount);
+                bookingTransaction.setStatus(TransactionStatus.Success);
+                bookingTransactionRepo.save(bookingTransaction);
                 return ResponseEntity.ok("Payment Success");
             }else {
                 logger.info("Insuffient Amount:{}",totalTicketAmount);
                 System.out.println("Insuffient Amount");
+                BookingTransaction bookingTransaction = new BookingTransaction();
+                bookingTransaction.setTransactionID(UUID.randomUUID().toString().substring(0,14).replace("-",""));
+                bookingTransaction.setUserName(userName);
+                bookingTransaction.setAmount(totalTicketAmount);
+                bookingTransaction.setStatus(TransactionStatus.Failed);
+                bookingTransactionRepo.save(bookingTransaction);
                 throw new InsufficientBalanceException("InsufficientBalanceException");
             }
         }else {

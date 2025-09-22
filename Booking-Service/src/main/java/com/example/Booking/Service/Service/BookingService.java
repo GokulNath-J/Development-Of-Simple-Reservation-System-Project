@@ -1,19 +1,14 @@
 package com.example.Booking.Service.Service;
 
 
-import com.example.Booking.Service.DTO.BookingRequest;
-import com.example.Booking.Service.DTO.TicketPrice;
-import com.example.Booking.Service.DTO.TrainDTO1;
-import com.example.Booking.Service.DTO.TrainDTOWrapper;
+import com.example.Booking.Service.DTO.*;
+import com.example.Booking.Service.Entity.NormalReservationTickets;
 import com.example.Booking.Service.Entity.PremiumTatkalTickets;
 import com.example.Booking.Service.Entity.TatkalTickets;
-import com.example.InsufficientBalanceException;
+import com.example.Booking.Service.Entity.TrainCoachNumberBooking;
+import com.example.Booking.Service.Repository.*;
 import com.example.PaymentFailedException;
 import com.example.Booking.Service.Feign.TrainFeign;
-import com.example.Booking.Service.Repository.NormalReservationRepo;
-import com.example.Booking.Service.Repository.PremiumTatkalRepo;
-import com.example.Booking.Service.Repository.TatkalRepo;
-import com.example.Booking.Service.Repository.TicketPriceRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +33,9 @@ public class BookingService {
     private TrainFeign trainFeign;
     @Autowired
     private TatkalService tatkalService;
+
+    @Autowired
+    private TrainCoachNumberBookingRepo trainCoachNumberBookingRepo;
 
     @Autowired
     public BookingService(TatkalRepo tatkalRepo, PremiumTatkalRepo premiumTatkalRepo, NormalReservationRepo normalReservationRepo) {
@@ -171,7 +169,7 @@ public class BookingService {
 //    }
 
     public HashMap<Integer, List<TrainDTO1>> getTrainDTOWrapperManually() {
-        HashMap<Integer, List<TrainDTO1>> trainDTO1 = trainFeign.sendTrainDTOToBookingServiceManually().getHashMap();
+        HashMap<Integer, List<TrainDTO1>> trainDTO1 = trainFeign.sendTatkalAndPremiumTataklTicketsToBookingServiceManually().getHashMap();
         addTatkalAndPremiumTatkatTickets(trainDTO1);
         return trainDTO1;
     }
@@ -183,4 +181,42 @@ public class BookingService {
     public void addPrice(TicketPrice ticketPrice) {
         ticketPriceRepo.save(ticketPrice);
     }
+
+    public String getTrainCoachNumberDTO(Integer trainNumber) {
+        List<TrainCoachNumberDTO> list = trainFeign.sendTrainCoachNumberDTO(trainNumber);
+        for (TrainCoachNumberDTO trainCoachNumberDTO : list) {
+            List<String> stringList = trainCoachNumberDTO.getCoachNumber();
+            for (String string : stringList) {
+                TrainCoachNumberBooking trainCoachNumberBooking = new TrainCoachNumberBooking(trainCoachNumberDTO.getTrainNumber()
+                        ,trainCoachNumberDTO.getCoachName(),trainCoachNumberDTO.getTotalNoOfSeats());
+                trainCoachNumberBooking.setCoachNumber(string);
+                trainCoachNumberBookingRepo.save(trainCoachNumberBooking);
+            }
+        }
+        return "Success";
+    }
+
+    public HashMap<Integer, List<TrainDTO1>> getNormalTicketsManually() {
+        HashMap<Integer, List<TrainDTO1>> trainDTO1 = trainFeign.sendNormalTicketsToBookingServiceManually().getHashMap();
+        addNormalTickets(trainDTO1);
+        return trainDTO1;
+    }
+
+    private void addNormalTickets(HashMap<Integer, List<TrainDTO1>> trainDTO1) {
+        List<NormalReservationTickets> normalReservationTicketsList = new ArrayList<>();
+        for (Map.Entry<Integer, List<TrainDTO1>> listEntry : trainDTO1.entrySet()) {
+            List<TrainDTO1> dto1List = listEntry.getValue();
+            for (TrainDTO1 dto1 : dto1List) {
+                NormalReservationTickets normalReservationTickets = new NormalReservationTickets(
+                        dto1.getTrain_number()
+                        , dto1.getCoach_name(), dto1.getStation_name(), dto1.getBooking_type()
+                        , dto1.getTotal_no_of_seats(), dto1.getTotal_no_of_seats()
+                        , 0, dto1.getEach_seat_price()
+                );
+                normalReservationTicketsList.add(normalReservationTickets);
+            }
+        }
+        normalReservationRepo.saveAll(normalReservationTicketsList);
+    }
+
 }

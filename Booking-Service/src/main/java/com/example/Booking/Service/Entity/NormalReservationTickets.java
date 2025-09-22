@@ -17,11 +17,23 @@ public class NormalReservationTickets {
     @SequenceGenerator(name = "nrtickets", sequenceName = "seqnrtickets", allocationSize = 1)
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "nrtickets")
     private Integer sNo;
-    private LocalDateTime booking_date_and_time;
-    private Integer train_number;
-    private String coach_name;
-    private Integer total_no_of_seats;
-    private Integer no_of_seats_available;
-    private Integer no_of_seats_booked;
-    private Double each_seat_price;
+    private Integer trainNumber;
+    private String coachName;
+    private String stationName;
+    private String bookingType;
+    private Integer totalNoOfSeats;
+    private Integer noOfSeatsAvailable;
+    private Integer noOfSeatsBooked;
+    private Double eachSeatPrice;
+
+    public NormalReservationTickets(Integer trainNumber, String coachName, String stationName, String bookingType, Integer totalNoOfSeats, Integer noOfSeatsAvailable, Integer noOfSeatsBooked, Double eachSeatPrice) {
+        this.trainNumber = trainNumber;
+        this.coachName = coachName;
+        this.stationName = stationName;
+        this.bookingType = bookingType;
+        this.totalNoOfSeats = totalNoOfSeats;
+        this.noOfSeatsAvailable = noOfSeatsAvailable;
+        this.noOfSeatsBooked = noOfSeatsBooked;
+        this.eachSeatPrice = eachSeatPrice;
+    }
 }

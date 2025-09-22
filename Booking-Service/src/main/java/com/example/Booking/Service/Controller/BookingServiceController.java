@@ -1,12 +1,8 @@
 package com.example.Booking.Service.Controller;
 
-import com.example.Booking.Service.DTO.BookingRequest;
-import com.example.Booking.Service.DTO.TicketPrice;
-import com.example.Booking.Service.DTO.TrainDTO1;
-import com.example.Booking.Service.DTO.TrainDTOWrapper;
+import com.example.Booking.Service.DTO.*;
 import com.example.Booking.Service.Entity.PremiumTatkalTickets;
 import com.example.Booking.Service.Entity.TatkalTickets;
-import com.example.InsufficientBalanceException;
 import com.example.PaymentFailedException;
 import com.example.Booking.Service.Service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,10 +50,20 @@ public class BookingServiceController {
     public HashMap<Integer, List<TrainDTO1>> getTrainDTOWrapperManually() {
         return bookingService.getTrainDTOWrapperManually();
     }
+    @GetMapping("/getNormalTicketsManually")
+    public HashMap<Integer, List<TrainDTO1>>getNormalTicketsManually() {
+        return bookingService.getNormalTicketsManually();
+    }
+
 
     @PostMapping("/addPrice")
     public String addPrice(@RequestBody TicketPrice ticketPrice) {
         bookingService.addPrice(ticketPrice);
         return "Success";
+    }
+
+    @GetMapping("/getTrainCoachNumberDTO")
+    public String getTrainCoachNumberDTO(@RequestParam Integer trainNumber) {
+        return bookingService.getTrainCoachNumberDTO(trainNumber);
     }
 }

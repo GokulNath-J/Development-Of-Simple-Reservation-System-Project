@@ -1,9 +1,10 @@
 package com.example.Train_Service.Service;
 
 
+import com.example.Train_Service.DTO.TrainCoachNumberDTO;
 import com.example.Train_Service.DTO.TrainDTO1;
-import com.example.Train_Service.Entity.*;
 import com.example.Train_Service.Entity.Booking.*;
+import com.example.Train_Service.Entity.*;
 import com.example.Train_Service.Repository.*;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -49,12 +50,14 @@ public class ServiceClass {
         this.trainReservationSystemRepo = trainReservationSystemRepo;
     }
 
+    private List<Integer> trainNumberslist = new ArrayList<>();
+
     public ResponseEntity<List<TrainDetails>> GetAll() {
         List<TrainDetails> getall = trainDetailsRepo.findAll();
         return new ResponseEntity<>(getall, HttpStatus.ACCEPTED);
     }
 
-    public HashMap<Integer, List<TrainDTO1>> sendTrainDTO1() {
+    public HashMap<Integer, List<TrainDTO1>> sendTatkalAndPremiumTataklTickets() {
         List<TrainDetails> trainDetails = trainDetailsRepo.findAllByFromStationDepartureDate(LocalDate.now().plusDays(1));
         logger.info("trainDetails size:{}", trainDetails.size());
         HashMap<Integer, List<TrainDTO1>> listHashMap = new HashMap<>();
@@ -87,6 +90,42 @@ public class ServiceClass {
         }
         return listHashMap;
     }
+
+    public HashMap<Integer, List<TrainDTO1>> sendNormalTickts() {
+        List<TrainDetails> trainDetails = trainDetailsRepo.findAllByFromStationDepartureDate(LocalDate.now().plusDays(30));
+        logger.info("trainDetails size:{}", trainDetails.size());
+        HashMap<Integer, List<TrainDTO1>> listHashMap = new HashMap<>();
+        for (TrainDetails trainDetail : trainDetails) {
+            List<TrainDTO1> trainDTOList = new ArrayList<>();
+            logger.info("for (TrainDetails trainDetail : trainDetails):train_number:{}", trainDetail.getTrainNumber());
+            List<TrainStoppingStation> station = trainDetail.getTrainStoppingStations();
+            logger.info("TrainStoppingStation size:{}", station.size());
+            for (TrainStoppingStation trainStoppingStation : station) {
+                logger.info("for (TrainStoppingStation trainStoppingStation : station):station_name:{}", trainStoppingStation.getStationName());
+                List<TicketsPerStation> tickets = trainStoppingStation.getTicketsPerStations();
+                logger.info("TicketsPerStation size:{}", tickets.size());
+                for (int i = 0; i < tickets.size(); i++) {
+                    TicketsPerStation ticketsPerStation = tickets.get(i);
+                    if (ticketsPerStation.getBookingType().equalsIgnoreCase("Tatkal") ||
+                            ticketsPerStation.getBookingType().equalsIgnoreCase("Premium Tatkal")) {
+                    } else if (ticketsPerStation.getStationName().equalsIgnoreCase(trainStoppingStation.getStationName())) {
+                        TrainDTO1 trainDTO1 = new TrainDTO1();
+                        trainDTO1.setTrain_number(trainDetail.getTrainNumber());
+                        trainDTO1.setBooking_type(ticketsPerStation.getBookingType());
+                        trainDTO1.setCoach_name(ticketsPerStation.getCoachName());
+                        trainDTO1.setStation_name(trainStoppingStation.getStationName());
+                        trainDTO1.setTotal_no_of_seats(ticketsPerStation.getTotalNoOfSeats());
+                        trainDTO1.setEach_seat_price(ticketsPerStation.getEachSeatPrice());
+                        trainDTOList.add(trainDTO1);
+                    }
+                }
+            }
+            listHashMap.put(trainDetail.getTrainNumber(), trainDTOList);
+        }
+        return listHashMap;
+    }
+
+
 
     public void verifyTicketsPerStation() {
         List<TrainDetails> trainDetails = trainDetailsRepo.findAllByFromStationDepartureDate(LocalDate.now().plusDays(1));
@@ -160,21 +199,21 @@ public class ServiceClass {
 //    }
 
     public void testingSendTrainDTO4() {
-        HashMap<Integer, List<TrainDTO1>> hashMap = sendTrainDTO1();
+        HashMap<Integer, List<TrainDTO1>> hashMap = sendTatkalAndPremiumTataklTickets();
         for (Integer i : hashMap.keySet()) {
             System.out.println(i);
         }
     }
 
     public void testingSendTrainDTO2() {
-        HashMap<Integer, List<TrainDTO1>> hashMap = sendTrainDTO1();
+        HashMap<Integer, List<TrainDTO1>> hashMap = sendTatkalAndPremiumTataklTickets();
         for (List<TrainDTO1> value : hashMap.values()) {
             System.out.println(value);
         }
     }
 
     public void testingSendTrainDTO3() {
-        HashMap<Integer, List<TrainDTO1>> hashMap = sendTrainDTO1();
+        HashMap<Integer, List<TrainDTO1>> hashMap = sendTatkalAndPremiumTataklTickets();
         for (Map.Entry<Integer, List<TrainDTO1>> entry : hashMap.entrySet()) {
             Integer key = entry.getKey();
             List<TrainDTO1> trains = entry.getValue();
@@ -208,7 +247,7 @@ public class ServiceClass {
         trainDetails.setDestinationStation(trainDetails.getTrainStoppingStations().getLast().getStationName());
         List<String> bookingtype = List.of("Tatkal", "Premium Tatkal", "Normal Reservation");
         addTicketsToEachStations2(trainDetails.getTrainNumber(), trainStoppingStation, trainCoaches, bookingtype);
-        addCoachNumber(trainDetails.getTrainNumber(),trainCoaches);
+        addCoachNumber(trainDetails.getTrainNumber(), trainCoaches);
         trainDetailsRepo.save(trainDetails);
         return new ResponseEntity<>("One Train Added", HttpStatus.CREATED);
     }
@@ -238,22 +277,26 @@ public class ServiceClass {
             trainStoppingStation.get(i).setTicketsPerStations(list);
         }
     }
+
     private void addCoachNumber(Integer trainNumber, List<TrainCoaches> trainCoaches) {
         int coachNumber = 1;
         for (int i = 0; i < trainCoaches.size(); i++) {
             TrainCoaches trainCoach = trainCoaches.get(i);
             trainCoach.setTrainNumber(trainNumber);
             logger.info("Coach Name:{}", trainCoach.getCoachName());
-            logger.info("TrainNumbeer in Coach:{}",trainCoach.getTrainNumber());
+            logger.info("TrainNumbeer in Coach:{}", trainCoach.getTrainNumber());
             List<TrainCoachNumber> trainCoachNumbersList = new ArrayList<>();
             int totalCoach = trainCoach.getTotalNoOfCoaches();
             logger.info("totalCoach:{}", totalCoach);
+            List<String> coachNumberString = new ArrayList<>();
             for (int j = 0; j < totalCoach; j++) {
                 logger.info("j={}", j);
+                coachNumberString.add("D" + coachNumber);
                 TrainCoachNumber trainCoachNumber = new TrainCoachNumber();
-//                trainCoachNumber.setTrainNumber(trainNumber);
+                trainCoachNumber.setTrainNumber(trainNumber);
                 trainCoachNumber.setCoachName(trainCoach.getCoachName());
                 trainCoachNumber.setCoachNumber("D" + coachNumber);
+                trainCoachNumber.setTotalNoOfSeats(trainCoach.getTotalNoSeats() / totalCoach);
                 coachNumber++;
                 trainCoachNumbersList.add(trainCoachNumber);
             }
@@ -314,9 +357,34 @@ public class ServiceClass {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body("Train Deleted");
     }
 
-//    public void testingSendTrainDTO() {
-//        sendTrainDTO();
-//    }
+    public List<TrainCoachNumberDTO> sendTrainCoachNumberDTO(Integer trainNumber) {
+        TrainDetails trainDetails = trainDetailsRepo.findByTrainNumber(trainNumber);
+        List<TrainCoaches> trainCoaches = trainDetails.getTrainCoachesList();
+        List<TrainCoachNumberDTO> trainCoachNumberDTOList = new ArrayList<>();
+        for (TrainCoaches trainCoach : trainCoaches) {
+            logger.info("CoachName:{}", trainCoach.getCoachName());
+            TrainCoachNumberDTO trainCoachNumberDTO = new TrainCoachNumberDTO();
+            trainCoachNumberDTO.setTrainNumber(trainCoach.getTrainNumber());
+            trainCoachNumberDTO.setCoachName(trainCoach.getCoachName());
+            List<TrainCoachNumber> trainCoachNumberList = trainCoach.getTrainCoachNumberList();
+            logger.info("Total TrainCoachNumber size{} in Coach:{}", trainCoachNumberList.size(), trainCoach.getCoachName());
+            List<String> stringList = new ArrayList<>();
+            for (TrainCoachNumber trainCoachNumber : trainCoachNumberList) {
+//                if (trainCoachNumber.getCoachName().endsWith(trainCoach.getCoachName())){
+                logger.info("CoachNumer:{}", trainCoachNumber.getCoachNumber());
+                stringList.add(trainCoachNumber.getCoachNumber());
+//                }
+                trainCoachNumberDTO.setTotalNoOfSeats(trainCoachNumber.getTotalNoOfSeats());
+            }
+            trainCoachNumberDTO.setCoachNumber(stringList);
+            trainCoachNumberDTOList.add(trainCoachNumberDTO);
+        }
+        return trainCoachNumberDTOList;
+    }
+
+    public TrainDetails getTrainByTrainNumber(Integer trainNumber) {
+        return trainDetailsRepo.findByTrainNumber(trainNumber);
+    }
 
 
 //    public void AddAllRail(List<TrainDetails> trainDetails) {

@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @ToString
 public class TrainDTOWrapper {
-
     private HashMap<Integer, List<TrainDTO1>> hashMap;
+
+
 }

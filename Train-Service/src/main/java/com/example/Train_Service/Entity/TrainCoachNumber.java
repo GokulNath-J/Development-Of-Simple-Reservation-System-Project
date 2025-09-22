@@ -18,5 +18,6 @@ public class TrainCoachNumber {
     private Integer trainNumber;
     private String coachName;
     private String coachNumber;
+    private Integer totalNoOfSeats;
 
 }

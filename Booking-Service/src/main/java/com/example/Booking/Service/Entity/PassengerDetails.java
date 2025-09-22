@@ -20,8 +20,16 @@ public class PassengerDetails {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
     private String passengerName;
+    private String gender;
+    private int age;
+    private String coachName;
+    private String coachNumber;
+    private int seatNumber;
 
-    public PassengerDetails(String passengerName) {
+
+    public PassengerDetails(String passengerName, String gender, int age) {
         this.passengerName = passengerName;
+        this.gender = gender;
+        this.age = age;
     }
 }

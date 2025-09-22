@@ -1,16 +1,15 @@
 package com.example.Booking.Service.Service;
 
 import com.example.Booking.Service.DTO.BookingRequest;
+import com.example.Booking.Service.Entity.PremiumTatkalTickets;
 import com.example.Booking.Service.Entity.TatkalTickets;
-import com.example.InsufficientBalanceException;
-import com.example.PaymentFailedException;
 import com.example.Booking.Service.Feign.PaymentFeign;
+import com.example.PaymentFailedException;
 import feign.FeignException;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,12 +34,37 @@ public class BookingServiceToPaymentService {
     }
 
     @Transactional(propagation = Propagation.SUPPORTS, rollbackFor = Exception.class)
-    public ResponseEntity<String> bookTicket(TatkalTickets tickets, BookingRequest request, double totalTicketAmount) throws PaymentFailedException {
+    public ResponseEntity<String> bookTatkalTicket(TatkalTickets tickets, BookingRequest request, double totalTicketAmount) throws PaymentFailedException {
+        log.info("Request on BookingServiceToPaymentService");
+//        int noOfTickets = request.getNumberOfTickets();
+//        tickets.setNoOfSeatsBooked(tickets.getNoOfSeatsBooked() + noOfTickets);
+//        tickets.setNoOfSeatsAvailable(tickets.getNoOfSeatsAvailable() - noOfTickets);
+        checkEntity(tickets);
+        log.info("userName:{}", request.getUserName());
+        String paymentResult = "No Valid";
+        try {
+            paymentResult = paymentFeign.paymentRequest(request.getUserName(), totalTicketAmount).getBody();
+            log.info("Payment Result in BookingServiceToPaymentService Try Block:{}", paymentResult);
+            int noOfTickets = request.getNumberOfTickets();
+            tickets.setNoOfSeatsBooked(tickets.getNoOfSeatsBooked() + noOfTickets);
+            tickets.setNoOfSeatsAvailable(tickets.getNoOfSeatsAvailable() - noOfTickets);
+            return ResponseEntity.ok(paymentResult);
+        } catch (FeignException.BadRequest e) {
+            String errorMessage = e.contentUTF8();
+            errorMessage = errorMessage.replace("\"", "");
+            System.out.println("Error message: " + errorMessage);
+            throw new PaymentFailedException(errorMessage);
+        } finally {
+            log.info("Payment Result in BookingServiceToPaymentService finally:{}", paymentResult);
+        }
+    }
+
+    public ResponseEntity<String> bookPremiumTatkalTicket(PremiumTatkalTickets premiumTatkalTickets, BookingRequest request, double totalTicketAmount) throws PaymentFailedException {
         log.info("Request on BookingServiceToPaymentService");
         int noOfTickets = request.getNumberOfTickets();
-        tickets.setNoOfSeatsAvailable(tickets.getNoOfSeatsAvailable() - noOfTickets);
-        tickets.setNoOfSeatsBooked(tickets.getNoOfSeatsBooked() + noOfTickets);
-        checkEntity(tickets);
+        premiumTatkalTickets.setNoOfSeatsAvailable(premiumTatkalTickets.getNoOfSeatsAvailable() - noOfTickets);
+        premiumTatkalTickets.setNoOfSeatsBooked(premiumTatkalTickets.getNoOfSeatsBooked() + noOfTickets);
+       // checkEntity(tickets);
         log.info("userName:{}", request.getUserName());
         String paymentResult = "No Valid";
         try {

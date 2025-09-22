@@ -1,9 +1,12 @@
 package com.example.Train_Service.DTO;
 
+import com.example.Train_Service.Entity.TrainCoachNumber;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -16,4 +19,5 @@ public class TrainDTO1 {
     private String coach_name;
     private Integer total_no_of_seats;
     private Double each_seat_price;
+
 }

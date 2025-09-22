@@ -24,7 +24,7 @@ public class TrainCoaches {
     private Double eachSeatPrice;
 
     @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "trainNumber", referencedColumnName = "trainNumber")
+    @JoinColumn(name = "coachId")
     private List<TrainCoachNumber> trainCoachNumberList;
 
 
