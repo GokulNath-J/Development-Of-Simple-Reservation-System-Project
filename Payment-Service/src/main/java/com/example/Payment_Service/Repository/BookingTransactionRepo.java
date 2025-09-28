@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BookingTransactionRepo extends JpaRepository<BookingTransaction,Integer> {
+    BookingTransaction findByTransactionID(String transactionID);
 }

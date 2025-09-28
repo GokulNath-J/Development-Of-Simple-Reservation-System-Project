@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.util.HashMap;
 import java.util.List;
 
 @Data
@@ -14,5 +13,5 @@ import java.util.List;
 @ToString
 public class TrainDTOWrapper {
 
-    private HashMap<Integer, List<TrainDTO1>> hashMap;
+    private List<PremiumAndTatkalDTO> premiumAndTatkalDTOList;
 }

@@ -13,7 +13,7 @@ import java.util.ListIterator;
 @Component
 public class CheckTrainStationFromToDestination {
 
-    private final static Logger logger = LoggerFactory.getLogger(CheckTrainRunningDays.class);
+    private final static Logger logger = LoggerFactory.getLogger(CheckTrainStationFromToDestination.class);
 
     public boolean checkTainFromToDestination(ListIterator<TrainStoppingStation> list1, String fromstation, String destination){
         List<String> list2 = new ArrayList<>();

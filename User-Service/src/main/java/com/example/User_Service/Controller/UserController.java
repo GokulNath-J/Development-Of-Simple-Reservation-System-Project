@@ -1,5 +1,6 @@
 package com.example.User_Service.Controller;
 
+import com.example.User_Service.DTO.BookingCancelRequestDTO;
 import com.example.User_Service.DTO.BookingRequest;
 
 import com.example.User_Service.Entity.NewUserRegister;
@@ -48,5 +49,11 @@ public class UserController {
     @PostMapping("/addMoneyToEWallet")
     public String addMoneyToEWallet(@RequestParam String username,@RequestParam double amount){
         return userService.addMoneyToEWallet(username,amount);
+    }
+
+
+    @PutMapping("/bookingCancelRequest")
+    public ResponseEntity<String> bookingCancelRequest(@RequestBody BookingCancelRequestDTO bookingCancelRequestDTO){
+        return userService.bookingCancelRequest(bookingCancelRequestDTO);
     }
 }

@@ -2,9 +2,9 @@ package com.example.Booking.Service.Service;
 
 import com.example.Booking.Service.DTO.BookingRequest;
 import com.example.Booking.Service.DTO.BookingStatus;
+import com.example.Booking.Service.DTO.PaymentResponse;
 import com.example.Booking.Service.DTO.TicketPrice;
 import com.example.Booking.Service.Entity.PremiumTatkalTickets;
-import com.example.Booking.Service.Entity.TatkalTickets;
 import com.example.Booking.Service.Repository.PremiumTatkalRepo;
 import com.example.Booking.Service.Repository.TicketPriceRepo;
 import com.example.PaymentFailedException;
@@ -25,8 +25,8 @@ public class PremiumTatkalService {
 
     private final static Logger log = LoggerFactory.getLogger(PremiumTatkalService.class);
 
-    private static final LocalTime tatkal_opens_at_for_nonsleepers = LocalTime.of(10, 00, 00);
-    private static final LocalTime tatkal_opens_at_for_sleepers = LocalTime.of(11, 00, 00);
+    private static final LocalTime Premiumtatkal_opens_at_for_nonsleepers = LocalTime.of(11, 00, 00);
+    private static final LocalTime Premiumtatkal_opens_at_for_sleepers = LocalTime.of(10, 00, 00);
 
 
     @Autowired
@@ -41,9 +41,24 @@ public class PremiumTatkalService {
     @Autowired
     private BookedTicketsService bookedTicketsService;
 
-    @Transactional
     public ResponseEntity<String> book(BookingRequest request) throws PaymentFailedException {
-        log.info("Request in TatkalService");
+        if (request.getCoachName().equals("Sleeper") || request.getCoachName().equals("2S")
+                && (LocalTime.now().isAfter(Premiumtatkal_opens_at_for_nonsleepers))
+                || (LocalTime.now().equals(Premiumtatkal_opens_at_for_nonsleepers))) {
+            ResponseEntity<String> response = bookProcess(request);
+            return response;
+        } else if (LocalTime.now().equals(Premiumtatkal_opens_at_for_sleepers)
+                || LocalTime.now().isAfter(Premiumtatkal_opens_at_for_sleepers)) {
+            ResponseEntity<String> response = bookProcess(request);
+            return response;
+        } else {
+            return ResponseEntity.badRequest().body("Premium Tatkal Not Yet Openned");
+        }
+    }
+
+    @Transactional
+    public ResponseEntity<String> bookProcess(BookingRequest request) throws PaymentFailedException {
+        log.info("Request in Premium TatkalService");
         log.info("BookingRequest Before Travel Date Check:{}", request);
         if (request.getTravelDate().equals(LocalDate.now().plusDays(1))) {
             log.info("getTravelDate() is Matched:");
@@ -66,12 +81,15 @@ public class PremiumTatkalService {
                 totalTicketAmount = calculateTotalAmount(request.getBookingMethod(), premiumTatkalTickets.getEachSeatPrice(),
                         request.getNumberOfTickets(), request.getCoachName());
                 if (totalTicketAmount > 0.0) {
-                    String result = bookingServiceToPaymentService.bookPremiumTatkalTicket(premiumTatkalTickets, request, totalTicketAmount).getBody();
-                    log.info("Payment Result in TatkalService:{}", result);
+                    PaymentResponse response = bookingServiceToPaymentService.bookPremiumTatkalTicket(premiumTatkalTickets, request, totalTicketAmount).getBody();
+                    String result = response.getPaymentStatus();
+                    log.info("Payment Result in Premium TatkalService:{}", result);
                     if (result.equalsIgnoreCase("Payment Success")) {
                         addTicketsToAnotherStations(premiumtatkalTicketslist, request.getToStationName(), request.getCoachName(), request.getNumberOfTickets());
-                        premiumTatkalTickets.setNoOfSeatsBooked(premiumTatkalTickets.getNoOfSeatsBooked() + request.getNumberOfTickets());
-                        bookedTicketsService.addTickets(request, BookingStatus.CONFIRMED, totalTicketAmount);
+                        int noOfTickets = request.getNumberOfTickets();
+                        premiumTatkalTickets.setNoOfSeatsAvailable(premiumTatkalTickets.getNoOfSeatsAvailable() - noOfTickets);
+                        premiumTatkalTickets.setNoOfSeatsBooked(premiumTatkalTickets.getNoOfSeatsBooked() + noOfTickets);
+                        bookedTicketsService.addTickets(request, BookingStatus.CONFIRMED, "NO", totalTicketAmount, totalTicketAmount, response.getTransactionID());
                         return ResponseEntity.ok("Ticket Booked Successfully");
                     } else {
                         return ResponseEntity.badRequest().body(result);
@@ -80,34 +98,19 @@ public class PremiumTatkalService {
                     return ResponseEntity.ok("Booking Cancelled");
                 }
             } else {
-                System.out.println("Tickets are Insufficient We Can Confirm Onces Tickets Available");
-                System.out.print("Do you Want to proceed:Y/N:");
-                Scanner scanner = new Scanner(System.in);
-                String yesOrno = scanner.nextLine();
-                if (yesOrno.equalsIgnoreCase("y")) {
-                    String result = bookingServiceToPaymentService.bookPremiumTatkalTicket(premiumTatkalTickets, request, totalTicketAmount).getBody();
-                    log.info("Payment Result in TatkalService:{}", result);
-                    if (result.equalsIgnoreCase("Payment Success")) {
-                        bookedTicketsService.addTickets(request, BookingStatus.WAITING, totalTicketAmount);
-                        return ResponseEntity.ok("Ticket Booked Successfully In the WAITING List");
-                    } else {
-                        return ResponseEntity.badRequest().body(result);
-                    }
-                } else {
-                    return ResponseEntity.ok("Booking Cancelled");
-                }
+                return ResponseEntity.badRequest().body("Insufficient Tickets");
             }
         }
         return ResponseEntity.ok("There is Not Train on this Date");
     }
 
     private double calculateTotalAmount(String bookingMethod, Double eachSeatPrice, int numberOfTickets, String coachName) {
-        log.info("Request in calculateTotalAmount Method in TatkalService");
+        log.info("Request in calculateTotalAmount Method in Premium TatkalService");
         TicketPrice ticketPrice = ticketPriceRepo.findByBookingTypeAndCoachName(bookingMethod, coachName);
         Scanner scanner = new Scanner(System.in);
-        if (bookingMethod.equalsIgnoreCase("Tatkal")) {
+        if (bookingMethod.equalsIgnoreCase("Premium Tatkal")) {
             double totalTicketPrice = (ticketPrice.getPrice() + eachSeatPrice) * numberOfTickets;
-            System.out.println("Total Tatakl TicketsPrice = " + totalTicketPrice);
+            System.out.println("Total Premium Tatakl TicketsPrice = " + totalTicketPrice);
             System.out.print("Do yo want to place booking Y/N.?:");
             String yesOrno = scanner.nextLine();
             if (yesOrno.equalsIgnoreCase("y")) {

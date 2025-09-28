@@ -18,6 +18,8 @@ public class BookingTransaction {
     private String transactionID;
     private String userName;
     private double amount;
+    private double amountReturned;
+    private double amountAfterReturned;
 
     @Enumerated(value = EnumType.STRING)
     private TransactionStatus status;

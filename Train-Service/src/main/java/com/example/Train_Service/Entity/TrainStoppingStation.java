@@ -29,8 +29,6 @@ public class TrainStoppingStation {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "trainNumber", referencedColumnName = "trainNumber")
     private List<TicketsPerStation> ticketsPerStations;
-    
-
 
 }
 

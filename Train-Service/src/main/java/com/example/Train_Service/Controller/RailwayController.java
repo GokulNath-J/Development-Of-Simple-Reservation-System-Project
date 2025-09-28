@@ -1,22 +1,32 @@
 package com.example.Train_Service.Controller;
 
+//
+//import com.example.Train_Service.DTO.NextNormalReservationTicketsRequest;
 
+import com.example.Train_Service.DTO.NormalTicketDTOWrapper;
+import com.example.Train_Service.DTO.PremiumAndTatkalDTO;
 import com.example.Train_Service.DTO.TrainCoachNumberDTO;
-import com.example.Train_Service.DTO.TrainDTOWrapper;
 import com.example.Train_Service.Entity.TrainDetails;
 import com.example.Train_Service.Service.ServiceClass;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/rail")
 public class RailwayController {
 
-    private ServiceClass serviceClass;
+    private static Logger log = LoggerFactory.getLogger(RailwayController.class);
+
+    private final ServiceClass serviceClass;
 
     @Autowired
     public RailwayController(ServiceClass serviceClass) {
@@ -90,20 +100,20 @@ public class RailwayController {
         serviceClass.testingSendTrainDTO();
     }
 
-    @GetMapping("/testSendingTrainDTO1")
-    public void testSendingTrainDTO1() {
-        serviceClass.testingSendTrainDTO4();
-    }
-
-    @GetMapping("/testSendingTrainDTO2")
-    public void testSendingTrainDTO2() {
-        serviceClass.testingSendTrainDTO2();
-    }
-
-    @GetMapping("/testSendingTrainDTO3")
-    public void testSendingTrainDTO3() {
-        serviceClass.testingSendTrainDTO3();
-    }
+//    @GetMapping("/testSendingTrainDTO1")
+//    public void testSendingTrainDTO1() {
+//        serviceClass.testingSendTrainDTO4();
+//    }
+//
+//    @GetMapping("/testSendingTrainDTO2")
+//    public void testSendingTrainDTO2() {
+//        serviceClass.testingSendTrainDTO2();
+//    }
+//
+//    @GetMapping("/testSendingTrainDTO3")
+//    public void testSendingTrainDTO3() {
+//        serviceClass.testingSendTrainDTO3();
+//    }
 
     @GetMapping("/verifyTicketsPerStation")
     public void testtickets() {
@@ -115,19 +125,22 @@ public class RailwayController {
         serviceClass.verifyTrain();
     }
 
-    @GetMapping("/sendTatkalAndPremiumTataklTicketsToBookingServiceManually")
-    public TrainDTOWrapper sendTrainDTOToBookingServiceManually() {
-        TrainDTOWrapper trainDTOWrapper = new TrainDTOWrapper(serviceClass.sendTatkalAndPremiumTataklTickets());
+//    @GetMapping("/sendTatkalAndPremiumTataklTicketsToBookingServiceManually")
+//    public PremiumAndTatkalDTOWrapper sendTrainDTOToBookingServiceManually() {
+//        PremiumAndTatkalDTOWrapper premiumAndTatkalDTOWrapper = new PremiumAndTatkalDTOWrapper(serviceClass.sendTatkalAndPremiumTataklTickets());
+//        return premiumAndTatkalDTOWrapper;
+//    }
 
-        return trainDTOWrapper;
-    }
+//    @GetMapping("/sendNormalTicketsToBookingServiceManually")
+//    public PremiumAndTatkalDTOWrapper sendNormalTicketsToBookingServiceManually() {
+//        PremiumAndTatkalDTOWrapper trainDTOWrapper = new PremiumAndTatkalDTOWrapper(serviceClass.createNormalTickts());
+//        return trainDTOWrapper;
+//    }
 
     @GetMapping("/sendNormalTicketsToBookingServiceManually")
-    public TrainDTOWrapper sendNormalTicketsToBookingServiceManually() {
-        TrainDTOWrapper trainDTOWrapper = new TrainDTOWrapper(serviceClass.sendNormalTickts());
-        return trainDTOWrapper;
+    public void sendNormalTicketsToBookingServiceManually(@RequestParam int trainNumber) {
+        serviceClass.addDatesToNormalTickets(trainNumber);
     }
-
 
     @DeleteMapping("/deleteTrainByTrainNumber")
     public ResponseEntity<String> deleteTrainByTrainNumber(@RequestParam Integer trainNumber) {
@@ -140,7 +153,21 @@ public class RailwayController {
     }
 
     @GetMapping("/getTrainByTrainNumber")
-    public TrainDetails getTrainByTrainNumber(@RequestParam Integer trainNumber){
+    public TrainDetails getTrainByTrainNumber(@RequestParam Integer trainNumber) {
         return serviceClass.getTrainByTrainNumber(trainNumber);
     }
+
+
+    @PostMapping("/getNextNormalReservationTickets")
+    public NormalTicketDTOWrapper getNextNormalReservationTickets(@RequestBody Map<Integer, LocalDate> trainNumberAndLastTravelDay) {
+        log.info("Request in Controller");
+        return serviceClass.getNextNormalReservationTickets(trainNumberAndLastTravelDay);
+    }
+
+    @GetMapping("/sendTatkalAndPremiumTataklTicketsToBookingServiceManually")
+    public List<PremiumAndTatkalDTO> sendTatkalAndPremiumTataklTicketsToBookingServiceManually() {
+        return serviceClass.sendTatkalAndPremiumTataklTickets();
+    }
+
+
 }

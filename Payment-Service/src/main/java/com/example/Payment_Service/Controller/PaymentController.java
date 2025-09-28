@@ -4,6 +4,7 @@ package com.example.Payment_Service.Controller;
 import com.example.InsufficientBalanceException;
 import com.example.PasswordIncorrectException;
 import com.example.PaymentFailedException;
+import com.example.Payment_Service.DTO.PaymentResponse;
 import com.example.Payment_Service.ServicePackage.PaymentServiceClass;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,12 @@ public class PaymentController {
 //       return paymentServiceClass.paymentRequest(paymentRequest);
 //    }
     @PostMapping("/paymentRequest")
-    public ResponseEntity<String> paymentRequest(@RequestParam String userName, @RequestParam double totalTicketAmount) throws InsufficientBalanceException, PasswordIncorrectException, PaymentFailedException {
+    public ResponseEntity<PaymentResponse> paymentRequest(@RequestParam String userName, @RequestParam double totalTicketAmount) throws InsufficientBalanceException, PasswordIncorrectException, PaymentFailedException {
         return paymentServiceClass.paymentRequest(userName,totalTicketAmount);
+    }
+
+    @PostMapping("/paymentReturn")
+    public void paymentReturn(@RequestParam String transactionID,@RequestParam double eachTicketPrice){
+        paymentServiceClass.paymentReturn(transactionID,eachTicketPrice);
     }
 }

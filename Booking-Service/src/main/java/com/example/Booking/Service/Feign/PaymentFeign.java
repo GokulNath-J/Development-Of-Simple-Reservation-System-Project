@@ -1,5 +1,6 @@
 package com.example.Booking.Service.Feign;
 
+import com.example.Booking.Service.DTO.PaymentResponse;
 import com.example.InsufficientBalanceException;
 import com.example.PasswordIncorrectException;
 import com.example.PaymentFailedException;
@@ -12,5 +13,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface PaymentFeign {
 
     @PostMapping("/payment/paymentRequest")
-    public ResponseEntity<String> paymentRequest(@RequestParam String userName, @RequestParam double totalTicketAmount);
+    public ResponseEntity<PaymentResponse> paymentRequest(@RequestParam String userName, @RequestParam double totalTicketAmount);
+
+    @PostMapping("/payment/paymentReturn")
+    public void paymentReturn(@RequestParam String transactionID,@RequestParam double eachTicketPrice);
 }

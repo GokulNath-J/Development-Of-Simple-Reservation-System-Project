@@ -19,6 +19,7 @@ public class PassengerDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
+    private String pnr;
     private String passengerName;
     private String gender;
     private int age;

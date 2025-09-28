@@ -1,6 +1,8 @@
 package com.example.Booking.Service.Service;
 
 import com.example.Booking.Service.DTO.BookingRequest;
+import com.example.Booking.Service.DTO.PaymentResponse;
+import com.example.Booking.Service.Entity.NormalReservationTickets;
 import com.example.Booking.Service.Entity.PremiumTatkalTickets;
 import com.example.Booking.Service.Entity.TatkalTickets;
 import com.example.Booking.Service.Feign.PaymentFeign;
@@ -34,20 +36,64 @@ public class BookingServiceToPaymentService {
     }
 
     @Transactional(propagation = Propagation.SUPPORTS, rollbackFor = Exception.class)
-    public ResponseEntity<String> bookTatkalTicket(TatkalTickets tickets, BookingRequest request, double totalTicketAmount) throws PaymentFailedException {
+    public ResponseEntity<PaymentResponse> bookTatkalTicket(TatkalTickets tickets, BookingRequest request, double totalTicketAmount) throws PaymentFailedException {
         log.info("Request on BookingServiceToPaymentService");
 //        int noOfTickets = request.getNumberOfTickets();
 //        tickets.setNoOfSeatsBooked(tickets.getNoOfSeatsBooked() + noOfTickets);
 //        tickets.setNoOfSeatsAvailable(tickets.getNoOfSeatsAvailable() - noOfTickets);
         checkEntity(tickets);
         log.info("userName:{}", request.getUserName());
-        String paymentResult = "No Valid";
+        PaymentResponse paymentResult = new PaymentResponse();
         try {
             paymentResult = paymentFeign.paymentRequest(request.getUserName(), totalTicketAmount).getBody();
             log.info("Payment Result in BookingServiceToPaymentService Try Block:{}", paymentResult);
             int noOfTickets = request.getNumberOfTickets();
-            tickets.setNoOfSeatsBooked(tickets.getNoOfSeatsBooked() + noOfTickets);
-            tickets.setNoOfSeatsAvailable(tickets.getNoOfSeatsAvailable() - noOfTickets);
+//            tickets.setNoOfSeatsBooked(tickets.getNoOfSeatsBooked() + noOfTickets);
+//            tickets.setNoOfSeatsAvailable(tickets.getNoOfSeatsAvailable() - noOfTickets);
+            return ResponseEntity.ok(paymentResult);
+        } catch (FeignException.BadRequest e) {
+            String errorMessage = e.contentUTF8();
+            errorMessage = errorMessage.replace("\"", "");
+            System.out.println("Error message: " + errorMessage);
+            throw new PaymentFailedException(errorMessage);
+        } finally {
+            log.info("Payment Result in BookingServiceToPaymentService finally:{}", paymentResult);
+        }
+    }
+    @Transactional
+    public ResponseEntity<PaymentResponse> bookPremiumTatkalTicket(PremiumTatkalTickets premiumTatkalTickets, BookingRequest request, double totalTicketAmount) throws PaymentFailedException {
+        log.info("Request on BookingServiceToPaymentService");
+        // checkEntity(tickets);
+        log.info("userName:{}", request.getUserName());
+        PaymentResponse paymentResult = new PaymentResponse();
+        try {
+            paymentResult = paymentFeign.paymentRequest(request.getUserName(), totalTicketAmount).getBody();
+            log.info("Payment Result in BookingServiceToPaymentService Try Block:{}", paymentResult);
+            int noOfTickets = request.getNumberOfTickets();
+//            premiumTatkalTickets.setNoOfSeatsAvailable(premiumTatkalTickets.getNoOfSeatsAvailable() - noOfTickets);
+//            premiumTatkalTickets.setNoOfSeatsBooked(premiumTatkalTickets.getNoOfSeatsBooked() + noOfTickets);
+            return ResponseEntity.ok(paymentResult);
+        } catch (FeignException.BadRequest e) {
+            String errorMessage = e.contentUTF8();
+            errorMessage = errorMessage.replace("\"", "");
+            System.out.println("Error message: " + errorMessage);
+            throw new PaymentFailedException(errorMessage);
+        } finally {
+            log.info("Payment Result in BookingServiceToPaymentService finally:{}", paymentResult);
+        }
+    }
+    @Transactional
+    public ResponseEntity<PaymentResponse> bookNormalTicket(NormalReservationTickets normalReservationTickets, BookingRequest request, double totalTicketAmount) throws PaymentFailedException {
+        log.info("Request on BookingServiceToPaymentService");
+        // checkEntity(tickets);
+        log.info("userName:{}", request.getUserName());
+        PaymentResponse paymentResult = new PaymentResponse();
+        try {
+            paymentResult = paymentFeign.paymentRequest(request.getUserName(), totalTicketAmount).getBody();
+            log.info("Payment Result in BookingServiceToPaymentService Try Block:{}", paymentResult);
+            int noOfTickets = request.getNumberOfTickets();
+//            normalReservationTickets.setNoOfSeatsAvailable(normalReservationTickets.getNoOfSeatsAvailable() - noOfTickets);
+//            normalReservationTickets.setNoOfSeatsBooked(normalReservationTickets.getNoOfSeatsBooked() + noOfTickets);
             return ResponseEntity.ok(paymentResult);
         } catch (FeignException.BadRequest e) {
             String errorMessage = e.contentUTF8();
@@ -59,25 +105,7 @@ public class BookingServiceToPaymentService {
         }
     }
 
-    public ResponseEntity<String> bookPremiumTatkalTicket(PremiumTatkalTickets premiumTatkalTickets, BookingRequest request, double totalTicketAmount) throws PaymentFailedException {
-        log.info("Request on BookingServiceToPaymentService");
-        int noOfTickets = request.getNumberOfTickets();
-        premiumTatkalTickets.setNoOfSeatsAvailable(premiumTatkalTickets.getNoOfSeatsAvailable() - noOfTickets);
-        premiumTatkalTickets.setNoOfSeatsBooked(premiumTatkalTickets.getNoOfSeatsBooked() + noOfTickets);
-       // checkEntity(tickets);
-        log.info("userName:{}", request.getUserName());
-        String paymentResult = "No Valid";
-        try {
-            paymentResult = paymentFeign.paymentRequest(request.getUserName(), totalTicketAmount).getBody();
-            log.info("Payment Result in BookingServiceToPaymentService Try Block:{}", paymentResult);
-            return ResponseEntity.ok(paymentResult);
-        } catch (FeignException.BadRequest e) {
-            String errorMessage = e.contentUTF8();
-            errorMessage = errorMessage.replace("\"", "");
-            System.out.println("Error message: " + errorMessage);
-            throw new PaymentFailedException(errorMessage);
-        } finally {
-            log.info("Payment Result in BookingServiceToPaymentService finally:{}", paymentResult);
-        }
+    public void paymentReturn(String transactionID, double eachTicketPrice) {
+        paymentFeign.paymentReturn(transactionID,eachTicketPrice);
     }
 }

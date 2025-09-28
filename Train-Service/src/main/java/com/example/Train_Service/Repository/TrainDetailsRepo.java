@@ -22,6 +22,8 @@ public interface TrainDetailsRepo extends JpaRepository<TrainDetails,Integer> {
 
     void deleteByTrainNumber(Integer trainNumber);
 
+//    List<TrainDetails> findAllByTrainNumber(List<Integer> trainNumbersList);
+
 
 //    List<TrainDetails> findByStartingPointIgnoreCase(String startingpoint);
 

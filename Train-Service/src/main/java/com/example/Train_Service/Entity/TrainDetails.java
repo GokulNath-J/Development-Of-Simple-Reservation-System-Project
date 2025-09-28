@@ -24,8 +24,12 @@ public class TrainDetails {
     private String fromStation;
     private String destinationStation;
     private Integer noOfStoppingstations;
+    private LocalDate fromStationArrivalDate;
     @Column(name = "from_station_departure_date")
     private LocalDate fromStationDepartureDate;
+
+    @Transient
+    private static String name;
 
 
     @OneToMany(cascade = CascadeType.ALL)
@@ -36,8 +40,11 @@ public class TrainDetails {
     @JoinColumn(name = "trainNumber", referencedColumnName = "trainNumber")
     private List<TrainCoaches> trainCoachesList;
 
-    @ElementCollection(targetClass = TrainRunningDays.class)
-    @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "train_running_days", joinColumns = @JoinColumn(name = "trainNumber", referencedColumnName = "trainNumber"))
-    private Set<TrainRunningDays> trainRunningDays;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "trainNumber", referencedColumnName = "trainNumber")
+    private List<TrainRunningDays> trainRunningDays;
+
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "trainNumber", referencedColumnName = "trainNumber")
+    private List<TrainRunningMonths> trainRunningMonths;
 }
