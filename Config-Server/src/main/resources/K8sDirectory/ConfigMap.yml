@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reservationmyconfigmap
+data:
+  SPRING_PROFILES_ACTIVE: docker,native
+  CONFIG_SERVER_URL: http://config-service:8000
+  EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+  URL: jdbc:mysql://reservation-my-service:3306/reservationdocker
+  DATABASE: reservationdocker
+  KAFKA_SERVER: kafka:29092

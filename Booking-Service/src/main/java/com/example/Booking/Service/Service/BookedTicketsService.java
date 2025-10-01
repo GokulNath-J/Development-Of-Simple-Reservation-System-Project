@@ -1,8 +1,6 @@
 package com.example.Booking.Service.Service;
 
-import com.example.Booking.Service.DTO.BookingRequest;
-import com.example.Booking.Service.DTO.BookingStatus;
-import com.example.Booking.Service.DTO.PassengerDetailsDTO;
+import com.example.Booking.Service.DTO.*;
 import com.example.Booking.Service.Entity.BookedTicketsAndStatus;
 import com.example.Booking.Service.Entity.PassengerDetails;
 import com.example.Booking.Service.Entity.TrainCoachNumberBooking;
@@ -44,6 +42,7 @@ public class BookedTicketsService {
         List<PassengerDetailsDTO> passengerDetailsDTO = request.getPassengersList();
         for (PassengerDetailsDTO detailsDTO : passengerDetailsDTO) {
             List<PassengerDetails> details = new ArrayList<>();
+            List<PassengerDetailsResponse> responseList = new ArrayList<>();
             BookedTicketsAndStatus bookedTicketsAndStatus = new BookedTicketsAndStatus(request, bookingStatus, eachTicketPrice);
             String pnr = UUID.randomUUID().toString().substring(0, 11).replace("-", "");
             bookedTicketsAndStatus.setPnr(pnr);
@@ -56,6 +55,10 @@ public class BookedTicketsService {
                 passengerDetails.setGender(detailsDTO.getGender());
                 passengerDetails.setAge(detailsDTO.getAge());
                 details.add(passengerDetails);
+                PassengerDetailsResponse response = new PassengerDetailsResponse(pnr, detailsDTO.getPassengerName(),
+                        detailsDTO.getGender(), detailsDTO.getAge(), passengerDetails.getCoachName(),
+                        passengerDetails.getCoachNumber(), passengerDetails.getSeatNumber());
+                responseList.add(response);
             } else {
                 PassengerDetails passengerDetails = new PassengerDetails();
                 passengerDetails.setCoachName(request.getCoachName());
@@ -63,10 +66,18 @@ public class BookedTicketsService {
                 passengerDetails.setGender(detailsDTO.getGender());
                 passengerDetails.setAge(detailsDTO.getAge());
                 details.add(passengerDetails);
+                PassengerDetailsResponse response = new PassengerDetailsResponse(pnr, detailsDTO.getPassengerName(),
+                        detailsDTO.getGender(), detailsDTO.getAge(), request.getCoachName());
+                responseList.add(response);
             }
             bookedTicketsAndStatus.setPassengersList(details);
             bookedTicketsRepo.save(bookedTicketsAndStatus);
+            BookingResponse bookingResponse = new BookingResponse(pnr, request.getUserName(),
+                    request.getTrainNumber(), request.getTravelDate(), request.getFromStationName()
+                    , request.getToStationName(), 1, request.getBookingMethod(),
+                    eachTicketPrice, waitingToConfirmTicket, transactionID, bookingStatus, responseList);
             log.info("Saved BookedTicketsAndStatus:{}", bookedTicketsAndStatus);
+            bookingEvent.sendBookingResponseToUser(bookingResponse);
         }
         return;
     }

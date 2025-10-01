@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: train-deployment
+  labels:
+    app: reservation-train
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-train
+  template:
+    metadata:
+      labels:
+        app: reservation-train
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-mysql-service 3306; do echo waiting for mysql; sleep 2; done' ]
+      containers:
+        - name: reservation-train-con
+          image:
+          ports:
+            - containerPort: 8081
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: EUREKA_SERVER_URL
+            - name: SPRING_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap             #metadata: name: config-map
+                  key: URL
+            - name: SPRING_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap           #metadata: name: config-map
+                  key: DATABASE
+            - name: SPRING_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic             #metadata: name: secret-basic
+                  key: username
+            - name: SPRING_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic            #metadata: name: secret-basic
+                  key: password

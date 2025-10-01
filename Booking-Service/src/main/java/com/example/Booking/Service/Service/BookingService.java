@@ -4,6 +4,7 @@ package com.example.Booking.Service.Service;
 import com.example.Booking.Service.DTO.*;
 import com.example.Booking.Service.Entity.*;
 import com.example.Booking.Service.Feign.TrainFeign;
+import com.example.Booking.Service.Kafka.BookingEvent;
 import com.example.Booking.Service.Repository.*;
 import com.example.PaymentFailedException;
 import org.slf4j.Logger;
@@ -21,12 +22,13 @@ import java.util.*;
 public class BookingService {
 
     private final static Logger log = LoggerFactory.getLogger(BookingService.class);
-
     private static boolean isTatkalAndPremiunTatkalClosed = true;
     private static LocalTime normalReservationClosingTime = LocalTime.of(20, 0, 0);
     private final TatkalRepo tatkalRepo;
     private final PremiumTatkalRepo premiumTatkalRepo;
     private final NormalReservationRepo normalReservationRepo;
+    @Autowired
+    private BookingEvent bookingEvent;
     @Autowired
     private TicketPriceRepo ticketPriceRepo;
     //    @Autowired
@@ -457,12 +459,14 @@ public class BookingService {
     public ResponseEntity<String> bookingCancelRequest(BookingCancelRequestDTO bookingCancelRequestDTO) {
         log.info("Request In BookingCancelRequest:{}", bookingCancelRequestDTO);
         BookedTicketsAndStatus bookedTicketsAndStatus = bookedTicketsRepo.findByPnr(bookingCancelRequestDTO.getPnr());
+        PassengerDetails details = passengerDetailsRepo.findByPnr(bookingCancelRequestDTO.getPnr());
         log.info("BookedTicketsAndStatus:{}", bookedTicketsAndStatus);
         if (bookedTicketsAndStatus.getBookingStatus().equals(BookingStatus.CONFIRMED)) {
             if (!bookedTicketsAndStatus.getIsCancellingTicketsClosed()) {
                 double eachTicketPrice = bookedTicketsAndStatus.getAmount();
                 bookingServiceToPaymentService.paymentReturn(bookedTicketsAndStatus.getTransactionID(), eachTicketPrice);
                 bookedTicketsAndStatus.setBookingStatus(BookingStatus.CANCELLED);
+                callCancellationBookingEvent(bookedTicketsAndStatus, details);
                 CheckAnyWaitingListTicket(bookedTicketsAndStatus);
             } else {
                 log.info("Cancelling Request Not Available");
@@ -474,6 +478,19 @@ public class BookingService {
 
 
         return ResponseEntity.ok().body("OK");
+    }
+
+    private void callCancellationBookingEvent(BookedTicketsAndStatus bookedTicketsAndStatus, PassengerDetails details) {
+        PassengerDetailsResponse detailsResponse = new PassengerDetailsResponse(
+                details.getPnr(), details.getPassengerName(), details.getGender(), details.getAge(),
+                details.getCoachName(), details.getCoachNumber(), details.getSeatNumber());
+        BookingResponse response = new BookingResponse(
+                bookedTicketsAndStatus.getPnr(), bookedTicketsAndStatus.getUserName(),
+                bookedTicketsAndStatus.getTrainNumber(), bookedTicketsAndStatus.getTravelDate(),
+                bookedTicketsAndStatus.getFromStationName(), bookedTicketsAndStatus.getToStationName(), 1,
+                bookedTicketsAndStatus.getBookingMethod(), bookedTicketsAndStatus.getAmount(), bookedTicketsAndStatus.getWaitingToConfirmTicket(), bookedTicketsAndStatus.getTransactionID(), BookingStatus.CANCELLED, List.of(detailsResponse));
+        bookingEvent.sendBookingResponseToUser(response);
+
     }
 
     @Transactional
@@ -552,8 +569,9 @@ public class BookingService {
             bookedTicket.setIsCancellingTicketsClosed(true);
         }
     }
+
     @Transactional
     public void clearNormalTickets(Integer trainNumber, LocalDate travelDate) {
-        normalReservationRepo.deleteAllByTrainNumberAndTravelDate(trainNumber,travelDate);
+        normalReservationRepo.deleteAllByTrainNumberAndTravelDate(trainNumber, travelDate);
     }
 }

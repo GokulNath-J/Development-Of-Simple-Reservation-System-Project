@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-config-deployment
+  labels:
+    app: reservation-config
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-config
+  template:
+    metadata:
+      labels:
+        app: reservation-config
+    spec:
+      containers:
+        - name: reservation-config-con
+          image: gokulnathjd03/reservation-config-server:0.4
+          ports:
+            - containerPort: 8000
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationconfigmap
+                  key: SPRING_PROFILES_ACTIVE
+
+

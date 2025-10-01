@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-mysql-deployment
+  labels:
+    app: reservation-mysql-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-mysql-deploy
+  template:
+    metadata:
+      labels:
+        app: reservation-mysql-deploy
+    spec:
+      containers:
+        - name: reservation-mysql-con
+          image: mysql
+          ports:
+            - containerPort: 3305
+          args: ["--port=3305"]
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic
+                  key: rootpassword
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap            #metadata: name: myconfigmap
+                  key: DATABASE
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic             #metadata: name: secret-basic
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic            #metadata: name: secret-basic
+                  key: password

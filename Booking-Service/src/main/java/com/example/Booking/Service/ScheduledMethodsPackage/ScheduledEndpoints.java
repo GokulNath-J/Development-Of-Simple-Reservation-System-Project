@@ -28,14 +28,14 @@ public class ScheduledEndpoints {
     private BookingService bookingService;
 
 
-    @Scheduled(cron = "0 03 15 * * * ")
+    @Scheduled(cron = "0 40 10 * * * ")
     public String takalAndPremiumTatkalOpenning() {
         BookingService.setIsTatkalAndPremiunTatkalClosed(false);
         log.info("takalAndPremiumTatkalOpenned");
         return "takalAndPremiumTatkalOpenned";
     }
 
-    @Scheduled(cron = "0 8 15 * * *")
+    @Scheduled(cron = "0 30 11 * * *")
     public String takalAndPremiumTatkalClosing() {
         BookingService.setIsTatkalAndPremiunTatkalClosed(true);
         log.info("takalAndPremiumTatkalClosed");

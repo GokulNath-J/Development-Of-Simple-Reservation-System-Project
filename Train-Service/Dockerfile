@@ -1,5 +1,4 @@
-FROM openjdk:17-jdk
-WORKDIR /indian-microservice
-COPY /target/Indian_Railway-0.0.1-SNAPSHOT.jar  /indian-microservice/indian-railway-container.jar
-EXPOSE 8882
-CMD ["java","-jar","indian-railway-container.jar"]
+FROM openjdk:21-jdk-slim
+WORKDIR Train/Dir/train
+COPY target/Train-Service-0.0.1-SNAPSHOT.jar /Train/Dir/train/Reservation-Train-Service.jar
+CMD ["java","-jar","Reservation-Train-Service.jar"]

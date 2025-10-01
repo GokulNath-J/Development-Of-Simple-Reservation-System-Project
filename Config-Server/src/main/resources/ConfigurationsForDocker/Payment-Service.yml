@@ -1,0 +1,36 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include: shutdown,beans,env
+  endpoint:
+    shutdown:
+      enabled: 'true'
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    database: ${SPRING_DATASOURCE_DATABASE}
+  application:
+    name: Payment-Service
+  jpa:
+    hibernate:
+      ddl-auto: update
+  cloud:
+    config:
+      fail-fast: true
+  retry:
+    enabled: true
+    maxAttempts: 10
+    initialInterval: 2000
+logging:
+  file:
+    name: Payment-Service.log
+server:
+  port: '8085'
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL}

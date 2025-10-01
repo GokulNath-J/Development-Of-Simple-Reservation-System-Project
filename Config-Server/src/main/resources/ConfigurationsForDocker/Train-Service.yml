@@ -1,0 +1,44 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include: shutdown,beans,env
+  endpoint:
+    shutdown:
+      enabled: 'true'
+spring:
+#  kafka:
+#    producer:
+#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#    consumer:
+#      group-id: TrainDTO-Group-1
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+  application:
+    name: Train-Service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    database: ${SPRING_DATASOURCE_DATABASE}
+  jpa:
+    hibernate:
+      ddl-auto: update
+  cloud:
+    config:
+      fail-fast: true
+  retry:
+    enabled: true
+    maxAttempts: 10
+    initialInterval: 2000
+logging:
+  file:
+    name: Train-Service.log
+server:
+  port: '8081'
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL}

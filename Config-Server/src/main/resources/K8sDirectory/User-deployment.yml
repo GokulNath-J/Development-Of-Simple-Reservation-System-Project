@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-deployment
+  labels:
+    app: reservation-user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-user
+  template:
+    metadata:
+      labels:
+        app: reservation-user
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-mysql-service 3306; do echo waiting for mysql; sleep 2; done' ]
+        - name: wait-for-kafka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-mysql-service 3306; do echo waiting for mysql; sleep 2; done' ]
+      containers:
+        - name: reservation-user-con
+          image:
+          ports:
+            - containerPort: 8084
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: EUREKA_SERVER_URL
+            - name: KAFKA_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: KAFKA_SERVER
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap             #metadata: name: myconfigmap
+                  key: URL
+            - name: SPRING_DATASOURCE_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap            #metadata: name: myconfigmap
+                  key: DATABASE
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic             #metadata: name: secret-basic
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic            #metadata: name: secret-basic
+                  key: password

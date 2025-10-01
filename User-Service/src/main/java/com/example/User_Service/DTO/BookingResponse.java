@@ -1,13 +1,11 @@
-package com.example.Booking.Service.DTO;
+package com.example.User_Service.DTO;
 
-import com.example.Booking.Service.Entity.PassengerDetails;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 
 @Data

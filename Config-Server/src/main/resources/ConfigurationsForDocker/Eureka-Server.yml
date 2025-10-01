@@ -1,0 +1,20 @@
+server:
+  port: 8761
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+spring:
+  cloud:
+    config:
+      fail-fast: true
+    retry:
+      enabled: true
+      maxAttempts: 10
+      initialInterval: 2000
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health

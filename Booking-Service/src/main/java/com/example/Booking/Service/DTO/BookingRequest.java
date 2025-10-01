@@ -14,6 +14,8 @@ import java.util.List;
 @AllArgsConstructor
 @ToString
 public class BookingRequest {
+
+
     private String userName;
     private Integer trainNumber;
     private LocalDate travelDate; // yyyy-MM-dd

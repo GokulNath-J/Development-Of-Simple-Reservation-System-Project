@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-api-deployment
+  labels:
+    app: reservation-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-api
+  template:
+    metadata:
+      labels:
+        app: reservation-api
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-mysql-service 3306; do echo waiting for mysql; sleep 2; done' ]
+      containers:
+        - name: reservation-api-con
+          image:
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                 name: myconfigmap
+                 key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: myconfigmap
+                  key: EUREKA_SERVER_URL
+

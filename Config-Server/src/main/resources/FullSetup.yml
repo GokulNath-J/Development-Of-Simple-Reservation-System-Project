@@ -1,0 +1,630 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reservationmyconfigmap
+data:
+  SPRING_PROFILES_ACTIVE: docker,native
+  CONFIG_SERVER_URL: http://config-service:8000
+  EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+  URL: jdbc:mysql://reservation-my-service:3306/reservationdocker
+  DATABASE: reservationdocker
+  KAFKA_SERVER: kafka:9092
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-config-deployment
+  labels:
+    app: reservation-config
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-config
+  template:
+    metadata:
+      labels:
+        app: reservation-config
+    spec:
+      containers:
+        - name: reservation-config-con
+          image: gokulnathjd03/reservation-config-server:0.4
+          ports:
+            - containerPort: 8000
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: SPRING_PROFILES_ACTIVE
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-config-service
+spec:
+  selector:
+    app: reservation-config
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-eureka-deployment
+  labels:
+    app: reservation-eureka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-eureka
+  template:
+    metadata:
+      labels:
+        app: reservation-eureka
+    spec:
+      initContainers:
+        - name: wait-for-config
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-config-service 8000; do echo waiting for config; sleep 2; done' ]
+      containers:
+        - name: reservation-eureka-con
+          image: gokulnathjd03/reservation-eureka-server:0.1
+          ports:
+            - containerPort: 8761
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: CONFIG_SERVER_URL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-eureka-service
+spec:
+  selector:
+    app: reservation-eureka
+  ports:
+    - protocol: TCP
+      port: 8761
+      targetPort: 8761
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-api-deployment
+  labels:
+    app: reservation-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-api
+  template:
+    metadata:
+      labels:
+        app: reservation-api
+    spec:
+      initContainers:
+        - name: wait-for-config
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-config-service 8000; do echo waiting for config; sleep 2; done' ]
+        - name: wait-for-eureka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-eureka-service 8761; do echo waiting for eureka; sleep 2; done' ]
+      containers:
+        - name: reservation-api-con
+          image: gokulnathjd03/reservation-api:0.1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: EUREKA_SERVER_URL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-api-service
+spec:
+  selector:
+    app: reservation-api
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 30012
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: train-deployment
+  labels:
+    app: reservation-train
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-train
+  template:
+    metadata:
+      labels:
+        app: reservation-train
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-mysql-service 3306; do echo waiting for mysql; sleep 2; done' ]
+        - name: wait-for-config
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-config-service 8000; do echo waiting for config; sleep 2; done' ]
+        - name: wait-for-eureka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-eureka-service 8761; do echo waiting for eureka; sleep 2; done' ]
+        - name: wait-for-api
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-api-service 8080; do echo waiting for api; sleep 2; done' ]
+      containers:
+        - name: reservation-train-con
+          image: gokulnathjd03/reservation-train-service:0.1
+          ports:
+            - containerPort: 8081
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: EUREKA_SERVER_URL
+            - name: SPRING_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap             #metadata: name: config-map
+                  key: URL
+            - name: SPRING_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap           #metadata: name: config-map
+                  key: DATABASE
+            - name: SPRING_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic             #metadata: name: secret-basic
+                  key: username
+            - name: SPRING_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic            #metadata: name: secret-basic
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-train-service
+spec:
+  selector:
+    app: reservation-train
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-deployment
+  labels:
+    app: reservation-user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-user
+  template:
+    metadata:
+      labels:
+        app: reservation-user
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-mysql-service 3306; do echo waiting for mysql; sleep 2; done' ]
+        - name: wait-for-kafka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done' ]
+        - name: wait-for-config
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-config-service 8000; do echo waiting for config; sleep 2; done' ]
+        - name: wait-for-eureka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-eureka-service 8761; do echo waiting for eureka; sleep 2; done' ]
+        - name: wait-for-api
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-api-service 8080; do echo waiting for api; sleep 2; done' ]
+      containers:
+        - name: reservation-user-con
+          image: gokulnathjd03/reservation-user-service:0.1
+          ports:
+            - containerPort: 8084
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: EUREKA_SERVER_URL
+            - name: KAFKA_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: KAFKA_SERVER
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap             #metadata: name: myconfigmap
+                  key: URL
+            - name: SPRING_DATASOURCE_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap            #metadata: name: myconfigmap
+                  key: DATABASE
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic             #metadata: name: secret-basic
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic            #metadata: name: secret-basic
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-user-service
+spec:
+  selector:
+    app: reservation-user
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booking-deployment
+  labels:
+    app: reservation-booking
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-booking
+  template:
+    metadata:
+      labels:
+        app: reservation-booking
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-mysql-service 3306; do echo waiting for mysql; sleep 2; done' ]
+        - name: wait-for-config
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-config-service 8000; do echo waiting for config; sleep 2; done' ]
+        - name: wait-for-eureka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-eureka-service 8761; do echo waiting for eureka; sleep 2; done' ]
+        - name: wait-for-api
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-api-service 8080; do echo waiting for api; sleep 2; done' ]
+      containers:
+        - name: reservation-booking-con
+          image: gokulnathjd03/reservation-booking-service:0.1
+          ports:
+            - containerPort: 8082
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: EUREKA_SERVER_URL
+            - name: KAFKA_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: KAFKA_SERVER
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap            #metadata: name: config-map
+                  key: URL
+            - name: SPRING_DATASOURCE_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap            #metadata: name: config-map
+                  key: DATABASE
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic             #metadata: name: secret-basic
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic            #metadata: name: secret-basic
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-booking-service
+spec:
+  selector:
+    app: reservation-booking
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-deployment
+  labels:
+    app: reservation-payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-payment
+  template:
+    metadata:
+      labels:
+        app: reservation-payment
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-mysql-service 3306; do echo waiting for mysql; sleep 2; done' ]
+        - name: wait-for-config
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-config-service 8000; do echo waiting for config; sleep 2; done' ]
+        - name: wait-for-eureka
+          image: busybox
+          command: [ 'sh', '-c', 'until nc -z reservation-eureka-service 8761; do echo waiting for eureka; sleep 2; done' ]
+      containers:
+        - name: reservation-payment-con
+          image: gokulnathjd03/reservation-payment-service:0.1
+          ports:
+            - containerPort: 8085
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap
+                  key: EUREKA_SERVER_URL
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap             #metadata: name: config-map
+                  key: URL
+            - name: SPRING_DATASOURCE_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap            #metadata: name: config-map
+                  key: DATABASE
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic             #metadata: name: secret-basic
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic            #metadata: name: secret-basic
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-payment-service
+spec:
+  selector:
+    app: reservation-payment
+  ports:
+    - protocol: TCP
+      port: 8085
+      targetPort: 8085
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      containers:
+        - name: zookeeper
+          image: confluentinc/cp-zookeeper:7.6.1
+          ports:
+            - containerPort: 2181
+          env:
+            - name: ZOOKEEPER_CLIENT_PORT
+              value: "2181"
+            - name: ZOOKEEPER_TICK_TIME
+              value: "2000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+spec:
+  selector:
+    app: zookeeper
+  ports:
+    - port: 2181
+      targetPort: 2181
+  clusterIP: None  # headless service (optional)
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: confluentinc/cp-kafka:7.6.1
+          ports:
+            - containerPort: 9092
+          env:
+            - name: KAFKA_BROKER_ID
+              value: "1"
+            - name: KAFKA_ZOOKEEPER_CONNECT
+              value: "zookeeper:2181"
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: PLAINTEXT://kafka:9092
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+spec:
+  selector:
+    app: kafka
+  ports:
+    - port: 9092
+      targetPort: 9092
+  clusterIP: None  # headless (optional)
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-basic
+type: Opaque
+stringData:
+  username: user1 # required field for kubernetes.io/basic-auth
+  password: pass123 # required field for kubernetes.io/basic-auth
+  rootpassword: pass123
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-mysql-deployment
+  labels:
+    app: reservation-mysql-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-mysql-deploy
+  template:
+    metadata:
+      labels:
+        app: reservation-mysql-deploy
+    spec:
+      containers:
+        - name: reservation-mysql-con
+          image: mysql
+          ports:
+            - containerPort: 3305
+          args: ["--port=3305"]
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic
+                  key: rootpassword
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: reservationmyconfigmap            #metadata: name: myconfigmap
+                  key: DATABASE
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic             #metadata: name: secret-basic
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-basic            #metadata: name: secret-basic
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-mysql-service
+spec:
+  selector:
+    app: reservation-mysql-deploy
+  ports:
+    - protocol: TCP
+      port: 3305
+      targetPort: 3306
+  type: ClusterIP
+
+

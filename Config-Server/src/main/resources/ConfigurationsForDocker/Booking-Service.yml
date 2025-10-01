@@ -8,6 +8,7 @@ management:
       enabled: 'true'
 spring:
   kafka:
+    bootstrap-servers: ${KAFKA_SERVER:localhost:9092}
     producer:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -29,9 +30,11 @@ spring:
   application:
     name: Booking-Service
   datasource:
-    password: Gokul@03
-    username: root
-    url: jdbc:mysql://localhost:3306/devreservation?createDatabaseIfNotExists=true
+    url: ${SPRING_DATASOURCE_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    database: ${SPRING_DATASOURCE_DATABASE}
   jpa:
     hibernate:
       ddl-auto: update
@@ -40,6 +43,13 @@ spring:
       hibernate:
         format_sql: true
         use_sql_comments: true
+  cloud:
+    config:
+      fail-fast: true
+  retry:
+    enabled: true
+    maxAttempts: 10
+    initialInterval: 2000
 logging:
   file:
     name: Booking-Service.logs
@@ -50,4 +60,4 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: ${EUREKA_SERVER_URL}

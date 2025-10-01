@@ -1,0 +1,167 @@
+services:
+  config-server:
+    image: reservation-config-server:0.4
+    container_name: config-con
+    environment:
+      SPRING_PROFILES_ACTIVE: docker,native
+    ports:
+      - 8000:8000
+    networks:
+      - reservation-network
+
+  eureka-server:
+    image: reservation-eureka-server:0.1
+    container_name: reservation-eureka-con
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+    ports:
+      - 8761:8761
+    networks:
+      - reservation-network
+    depends_on:
+      - config-server
+
+  eureka-api:
+    image: reservation-api:0.1
+    container_name: reservation-api-con
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8000
+    ports:
+      - 8080:8080
+    networks:
+      - reservation-network
+    depends_on:
+      - config-server
+      - eureka-server
+
+  train-service:
+    image: reservation-train-service:0.1
+    container_name: train-con
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://reservation-mysql-con:3306/reservationdocker
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: pass
+      SPRING_DATASOURCE_DATABASE: reservationdocker
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8000
+    ports:
+      - 8081:8081
+    networks:
+      - reservation-network
+    depends_on:
+      - config-server
+      - eureka-server
+
+  user-service:
+    image: reservation-user-service:0.1
+    container_name: user-con
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://reservation-mysql-con:3306/reservationdocker
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: pass
+      SPRING_DATASOURCE_DATABASE: reservationdocker
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8000
+      KAFKA_SERVER: kafka:29092
+    ports:
+      - 8084:8084
+    networks:
+      - reservation-network
+    depends_on:
+      - config-server
+      - kafka
+
+
+  booking-service:
+    image: reservation-booking-service:0.1
+    container_name: booking-con
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://reservation-mysql-con:3306/reservationdocker
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: pass
+      SPRING_DATASOURCE_DATABASE: reservationdocker
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8000
+      KAFKA_SERVER: kafka:29092
+
+    ports:
+      - 8082:8082
+    networks:
+      - reservation-network
+    depends_on:
+      - config-server
+      - kafka
+
+  payment-service:
+    image: reservation-payment-service:0.1
+    container_name: payment-con
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/reservationdocker
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: pass
+      SPRING_DATASOURCE_DATABASE: reservationdocker
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8000
+    ports:
+      - 8085:8085
+    networks:
+      - reservation-network
+    depends_on:
+      - config-server
+
+  mysql:
+    image: mysql
+    container_name: reservation-mysql-con
+    environment:
+      MYSQL_DATABASE: reservationdocker
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_USER: user
+      MYSQL_PASSWORD: pass
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 3305:3306
+    volumes:
+      - reservation-mysql-data-new:/var/lib/mysql
+    networks:
+      - reservation-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper-reservation
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - reservation-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-reservation
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    networks:
+      - reservation-network
+
+volumes:
+  reservation-mysql-data-new:
+
+networks:
+  reservation-network:
+    driver: bridge
